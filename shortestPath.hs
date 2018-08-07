@@ -7,9 +7,7 @@ data Node = Node {name       :: Char
                  ,neighbours :: [Char]} deriving (Show)
 
 find :: String -> [Node] -> IO ()
-find [start,end] net = do ok <- let topChar :: Char
-                                    topChar = toEnum (fromEnum 'a' + (length net) - 1)
-                                in netOk
+find [start,end] net = do ok <- netOk
                           if ok then putStrLn (rec [([], start)])
                                 else putStrLn "Computation aborted."
                           return ()
