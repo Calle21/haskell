@@ -9,13 +9,12 @@ data Node = Node {name       :: Char
                  ,neighbours :: [Char]} deriving (Show)
 
 find :: String -> [Node] -> IO ()
-find [start,end] net = do ok <- netOk
-                          if ok then putStrLn (rec [([], start)])
-                                else putStrLn "Computation aborted."
-                          return ()
+find [start,end] net = case netOk of
+                        Left s  -> putStrLn s
+                        Right _ -> putStrLn (rec [([], start)])
  where rec queue
         | null queue = "The nodes you specified do not seem to be connected."
-        | otherwise  = let first@(history, nxt):rest = queue
+        | otherwise  = let (history, nxt):rest = queue
         in if nxt `elem` history
           then rec rest
           else if nxt == end
@@ -25,22 +24,18 @@ find [start,end] net = do ok <- netOk
                          | null neighbours' = []
                          | otherwise        = (history', head neighbours') : makeNew history' (tail neighbours')
                         getNode = rec net
-                         where rec (f:r) c
-                                | c == name f = f
-                                | otherwise   = rec r c
+                         where rec (x:xs) c
+                                | c == name x = x
+                                | otherwise   = rec xs c
                         showIt = intercalate " -> " . map (\a -> [a])
-       netOk :: IO Bool
        netOk
-        | null net = do putStrLn "Net empty."
-                        return False
-        | not (consecutive 'a' net) = do putStrLn "Nodes must be named consecutively, starting with the character \'a\'"
-                                         return False
-        | not neighboursOk = do putStrLn "Some node is referring to a neighbour that does not exist."
-                                return False
-        | otherwise = return True
+        | null net                  = Left "Net empty"
+        | not (consecutive 'a' net) = Left "Nodes must be named consecutively, starting with the character \'a\'"
+        | not neighboursOk          = Left "Some node is referring to a neighbour that does not exist."
+        | otherwise                 = Right ()
         where consecutive _ [] = True
-              consecutive start (f:r) = if start == name f then consecutive (succ start) r
-                                                           else False
+              consecutive start (x:xs) = if start == name x then consecutive (succ start) xs
+                                                            else False
               neighboursOk = let topChar = name (last net) -- Must be preceded by consecutive
                           in not (any (>topChar) (concat (map neighbours net)))
 
