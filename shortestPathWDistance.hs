@@ -3,6 +3,8 @@
 
 module ShortestPathWDistance () where
 
+import Data.List(intercalate)
+
 data Node = Node {name       :: Char
                  ,x          :: Float
                  ,y          :: Float
@@ -17,8 +19,8 @@ find [start,end] net = do ok <- netOk
                           return ()
  where rec queue win
         | null queue = case win of
-                        Nothing    -> "The nodes you specified does not seem to be connected."
-                        Just (h,d) -> show (reverse h, d)
+                        Nothing    -> "The nodes you specified do not seem to be connected."
+                        Just (h,d) -> showIt (reverse h, d)
         | otherwise  = let first@(history, nxt, distance):rest = queue
                            history' = nxt : history
                            distance' = case history of
@@ -38,6 +40,7 @@ find [start,end] net = do ok <- netOk
                          where rec (f:r) c
                                 | c == name f = f
                                 | otherwise   = rec r c
+       showIt (history, distance) = intercalate " -> " (map (\a -> [a]) history) ++ " ; " ++ show distance
        getDistance :: Node -> Node -> Float
        getDistance (Node _ x1 y1 _) (Node _ x2 y2 _) = sqrt ((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
        netOk :: IO Bool
@@ -48,8 +51,7 @@ find [start,end] net = do ok <- netOk
                                          return False
         | not neighboursOk = do putStrLn "Some node is referring to a neighbour that do not exist."
                                 return False
-        | otherwise = do putStrLn "Net ok"
-                         return True
+        | otherwise = return True
         where consecutive _ [] = True
               consecutive start (f:r) = if start == name f then consecutive (succ start) r
                                                            else False
