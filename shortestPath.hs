@@ -1,15 +1,10 @@
-
- -- Not from RWH
-
-module ShortestPath () where
-
 import Data.List(intercalate)
 
 data Node = Node {name       :: Char
                  ,neighbours :: [Char]} deriving (Show)
 
-find :: String -> [Node] -> IO ()
-find [start,end] net = case netOk of
+findPath :: String -> [Node] -> IO ()
+findPath [start,end] net = case netOk of
                         Left s  -> putStrLn s
                         Right _ -> putStrLn (rec [([], start)])
  where rec queue

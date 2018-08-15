@@ -1,5 +1,5 @@
 
-  -- Chapter 3
+  -- From Real World Haskell (ch3)
 
 module Angles (grahamScan) where
 

@@ -1,8 +1,6 @@
 
  -- Extension of the shortest path program (I think this is a little too hard for me)
 
-module ShortestPathWDistance () where
-
 import Data.List(intercalate)
 
 data Node = Node {name       :: Char
@@ -12,8 +10,8 @@ data Node = Node {name       :: Char
 
 type Network = [Node]
 
-find :: String -> Network -> IO ()
-find [start,end] net = case netOk of
+findPath :: String -> Network -> IO ()
+findPath [start,end] net = case netOk of
                         Left s -> putStrLn s
                         _      -> putStrLn (rec [([], start, 0.0)] Nothing)
  where rec queue win

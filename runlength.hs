@@ -1,8 +1,3 @@
-
- -- Not from RWH
-
-module RunLength(compress, decompress) where
-
 compress :: [Bool] -> (Bool, [Int])
 compress []    = (True, [])
 compress (h:t) = (h, rec 1 h t)
