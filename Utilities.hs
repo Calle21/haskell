@@ -13,11 +13,12 @@ safeTail :: [a] -> [a]
 safeTail (_:xs) = xs
 safeTail []     = []
 
-safeHead :: [a] -> Maybe a
-safeHead (x:_) = Just x
-safeHead []    = Nothing
-
 cycleNTimes :: Int -> [a] -> [a]
 cycleNTimes n xs
   | n > 0     = xs ++ cycleNTimes (n - 1) xs
   | otherwise = []
+
+mapWI :: (a -> Int -> b) -> [a] -> [b]
+mapWI = rec 0
+ where rec i f (x:xs) = f x i : rec (i + 1) f xs
+       rec _ _ []     = []
