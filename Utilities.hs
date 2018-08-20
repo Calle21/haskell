@@ -23,8 +23,8 @@ mapWI = rec 0
  where rec i f (x:xs) = f x i : rec (i + 1) f xs
        rec _ _ []     = []
 
-ntimes :: Int -> IO a -> IO a
+ntimes :: Int -> IO a -> IO ()
 ntimes n act 
-  | n > 1     = act >> ntimes (n - 1) act
-  | otherwise = act
+  | n > 0     = act >> ntimes (n - 1) act
+  | otherwise = return ()
 
