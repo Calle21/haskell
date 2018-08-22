@@ -1,6 +1,6 @@
 import System.Directory(listDirectory, makeAbsolute)
 import Utilities(safeTail)
-import Text.Regex.PCRE
+import Text.Regex.Posix((=~))
 import System.FilePath.Posix((</>))
 import Control.Monad(forM)
 
