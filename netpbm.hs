@@ -1,7 +1,6 @@
 {- Real World Haskell presents a parser for bitmap images in chapter 10.
  - Here's my take on it. A little messy perhaps -}
 
-
 import qualified Data.ByteString as BS
 import Data.Char(isSpace, isDigit)
 
