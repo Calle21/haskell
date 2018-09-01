@@ -2,6 +2,8 @@ module Utilities where
 
 import Data.Char(toUpper, toLower, digitToInt)
 import Data.Array
+import Control.Monad(replicateM_)
+import Data.List
 
 type String' = (Array Int Char)
 
@@ -29,9 +31,7 @@ mapWI = rec 0
        rec _ _ []     = []
 
 ntimes :: Int -> IO a -> IO ()
-ntimes n act 
-  | n > 0     = act >> ntimes (n - 1) act
-  | otherwise = return ()
+ntimes = replicateM_
 
 listToArray :: [a] -> Array Int a
 listToArray l = listArray (0, length l - 1) l
@@ -59,3 +59,22 @@ binarySearch fn elt arr = search (bounds arr)
                          LT  -> search (low,mid - 1)
                          EQ  -> Just match
                          GT  -> search (mid + 1, hi)
+
+lift :: (Monad m) => (a -> b) -> a -> m b
+lift f = return . f
+
+maybeList :: Maybe [a] -> [a]
+maybeList (Just l) = l
+maybeList Nothing  = []
+
+listMaybe :: [a] -> Maybe [a]
+listMaybe [] = Nothing
+listMaybe ls = Just ls
+
+dfoldl :: (a -> a -> a) -> a -> [a] -> a
+dfoldl f _ (x:xs) = foldl f x xs
+dfoldl _ def []   = def
+
+dfoldl' :: (a -> a -> a) -> a -> [a] -> a
+dfoldl' f _ (x:xs) = foldl' f x xs
+dfoldl' _ def []   = def
