@@ -1,0 +1,8 @@
+fn RA memoize (fn RA f)
+  maptree AR tree = void
+  fn (A arg -> if res = arg `find` tree
+                 res
+                 else
+                 res = f arg
+                 tree := (arg,res) `insert` tree
+                 res)
