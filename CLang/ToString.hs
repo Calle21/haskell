@@ -17,7 +17,8 @@ tokenString t = case t of
                   TFloat f   -> show f
                   TInt n     -> show n
                   TString s  -> show s
-                  Typevar c  -> [c]
+                  Type s     -> s
+                  Typevar s  -> s
                   Underscore -> "_"
 
 indentString :: Indent -> String

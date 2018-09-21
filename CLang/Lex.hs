@@ -17,7 +17,8 @@ data Token = Hash Int
            | TFloat Float
            | TInt Int
            | TString String
-           | Typevar Char
+           | Type String
+           | Typevar String
            | Underscore
            deriving (Eq, Show, Read)
 
@@ -47,20 +48,19 @@ lex filename = loop 1 1
                 _    -> let (s, inp')                                      = span symChar inp
                             sym | null s                                   = cError "Lex" col line filename ("Illegal character : " ++ [c])
                                 | keyword s                                = Keyword s
-                                | s =~ "^[A-Z]+$"                          = Typevar $ head s
                                 | s =~ "^[a-z]+$"                          = Name s
+                                | s =~ "^[A-Z][a-z]+$"                     = Type s
                                 | s =~ ("^[\\\\" ++ specialChars ++ "]+$") = Opname s
                                 | s =~ "^-?\\d+$"                          = TInt $ read s
                                 | s =~ "^`[a-z]+`$"                        = Infix $ init $ tail s
                                 | s =~ "^([a-z]*\\.[a-z]+)+$"              = if head s == '.' then cError "Lex" col line filename "Didn't expect a dot"
                                                                              else Nested $ split '.' s
                                 | s =~ "^-?\\d+\\.\\d+$"                   = TFloat $ read s
+                                | s =~ "^[A-Z]+$"                          = Typevar s
                                 | s =~ "^#\\d+$"                           = Hash $ read $ tail s
                                 | s =~ "^_$"                               = Underscore
                                 | otherwise                                = cError "Lex" col line filename ("Bad token : " ++ s)
-                        in case sym of
-                             Typevar _  -> (sym, 1, tail inp)
-                             _          -> (sym, length s, inp')
+                        in (sym, length s, inp')
       where
       getString :: String -> Int -> String -> (Token, Int, String)
       getString acc n s
