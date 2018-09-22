@@ -5,9 +5,11 @@ import CLang.Error
 import CLang.Syntax
 import Text.Regex.PCRE
 import Utilities(countUntil, split)
+import Data.List(isPrefixOf)
 
 data Token = Hash Int
            | Infix String
+           | InfixDecl (Either Int Int)
            | Keyword String
            | Name String
            | Nested [String]
@@ -33,9 +35,9 @@ lex filename = loop 1 1
                             in loop (col + n) line inp'
                     '\n' -> let (n, inp') = countUntil (/='\n') inp
                             in loop 1 (line + n) inp'
-                    ';'  -> loop col line $ dropWhile (/='\n') inp
-                    c    -> let (tok, len, inp') = token c
-                            in (col, line, tok) : loop (col + len) line inp'
+                    c    -> if "\\\\" `isPrefixOf` inp then loop col line $ dropWhile (/='\n') inp
+                            else let (tok, len, inp') = token c
+                                 in (col, line, tok) : loop (col + len) line inp'
     where
     token :: Char -> (Token, Int, String)
     token c = if c `elem` ",()[]{}^" then (Punct c, 1, tail inp)
@@ -57,6 +59,10 @@ lex filename = loop 1 1
                                                                              else Nested $ split '.' s
                                 | s =~ "^-?\\d+\\.\\d+$"                   = TFloat $ read s
                                 | s =~ "^[A-Z]+$"                          = Typevar s
+                                | s =~ "^[RL]\\d+$"                        = let p = read $ tail s
+                                                                             in case head s of
+                                                                                  'R'  -> InfixDecl $ Right p
+                                                                                  'L'  -> InfixDecl $ Left p
                                 | s =~ "^#\\d+$"                           = Hash $ read $ tail s
                                 | s =~ "^_$"                               = Underscore
                                 | otherwise                                = cError "Lex" col line filename ("Bad token : " ++ s)

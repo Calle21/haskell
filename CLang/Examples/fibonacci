@@ -1,0 +1,9 @@
+Int fibonacci (Int n) where n >= 0 \\ This means n has to be 0 or greater
+  if n < 2
+    n
+    else
+    rec (Int a = 0, Int b = 1, Int n = n - 2)
+      Int c = a + b
+      if n == 0
+        c
+        else rec (a = b, b = c, n = n - 1)

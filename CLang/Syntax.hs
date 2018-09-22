@@ -8,5 +8,5 @@ symChar c = c >= 'a' && c <= 'z' ||
 
 specialChars = "\\-+*/<>=&|@~%$!.#:"
 
-keywords  = ["where", "has", "=", ">>", ":=", "if", "->", "else", "true", "false"]
+keywords  = ["where", "has", "=", ">>", ":=", "if", "->", "else", "true", "false", "...", "=>", "is"]
 keyword s = s `elem` keywords

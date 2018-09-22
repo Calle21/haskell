@@ -1,0 +1,4 @@
+Ls B map (Ls A ls, Fn BA f) = if ls == void
+  void
+  else
+  f ls.car `cons` ls.cdr.map f

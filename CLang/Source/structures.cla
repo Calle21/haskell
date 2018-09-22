@@ -1,0 +1,10 @@
+module Clang Structures
+
+type Map KE = struct (Map KE  left
+                      K       key
+                      E       element
+                      Map KE  right) | Void
+
+type Set E  = struct (Set E  left
+                      E      element
+                      Set E  right) | Void

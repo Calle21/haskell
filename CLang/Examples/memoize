@@ -1,5 +1,5 @@
-fn RA memoize (fn RA f)
-  maptree AR tree = void
+Fn RA memoize (Fn RA f)
+  Map AR tree = void
   fn (A arg -> if res = arg `find` tree
                  res
                  else
