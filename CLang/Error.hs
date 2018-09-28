@@ -2,5 +2,8 @@ module CLang.Error (cError) where
 
 import Utilities(format)
 
-cError :: String -> Int -> Int -> String -> String -> a
-cError part col line filename message = error $ format "%0 error on line %1, column %2\n  %3 (%4)\n" [part, show line, show col, message, filename]
+lError :: Int -> Int -> String -> String -> a
+lError col line filename message = error $ format "Lex error on line %0, column %1\n  %2 (%3)\n" [show line, show col, message, filename]
+
+pError :: Int -> String -> String -> a
+pError line filename message = error $ format "Parse error on line %0\n  %1 (%2)\n" [show line, message, filename]

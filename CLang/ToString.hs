@@ -1,7 +1,7 @@
 module CLang.ToString where
 
 import CLang.Lex(Token(..))
-import CLang.Indent(Indent(..))
+import CLang.Indent(Indent(..), getColumn)
 import Data.List(intercalate)
 
 tokenString :: Token -> String
@@ -16,6 +16,7 @@ tokenString t = case t of
                   Nested ss   -> "." `intercalate` ss
                   Opname s    -> s
                   Punct c     -> [c]
+                  Special s   -> s
                   TChar c     -> show c
                   TFloat f    -> show f
                   TInt n      -> show n
@@ -25,10 +26,9 @@ tokenString t = case t of
                   Underscore  -> "_"
 
 indentString :: Indent -> String
-indentString (Line _ ts) = pred (fst $ head ts) `replicate` ' ' ++ " " `intercalate` ((tokenString . snd) `map` ts) ++ "\n"
-indentString (Indent 1 is) = separate $ indentString `map` is
-  where
+indentString (Line _ xs) = pred (fst $ head xs) `replicate` ' ' ++ " " `intercalate` ((tokenString . snd) `map` xs) ++ "\n"
+indentString (Indent ys) | getColumn ys == 1 = separate $ indentString `map` ys
+  where                  | otherwise         = indentString `concatMap` is
   separate :: [String] -> String
   separate (x:y:xs) = x ++ (if head y /= ' ' then "\n" else "") ++ separate (y:xs)
   separate (x:_)    = x
-indentString (Indent _ is) = indentString `concatMap` is

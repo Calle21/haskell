@@ -1,41 +1,47 @@
 module CLang.Parse (parse) where
 
-import Prelude hiding (getLine)
-import CLang.Error
-import CLang.Lex(Token(..))
-import CLang.Indent(Indent(..))
+import CLang.Lex(Token)
+import qualified CLang.Env as E
+import CLang.Env(getEnv)
+import CLang.Parse.Match(match)
+import CLang.Parse.Header(parseHeader)
+import CLang.Parse.Body(parseBody)
+import Data.Foldable(foldlM)
+import Control.Monad(>=>)
 
-data Leaf = Symbol String
-          | PInt Int
-          | PFloat Float
-          | PString String
-          | PChar Char
-          | PBool
-          | Unsigned
-          | Sub [Leaf]
+data Prim = Signed Int | Unsigned Int deriving (Eq, Ord, Read, Show)
 
-type ParseTree = [Leaf]
+type Type = [String]
 
-getLine :: Indent -> Int
-getLine (Line ln _) = ln
-getLine (Indent _ is) = getLine $ head is
+data Code = Array      Type   [Code]  -- Type [Code]
+          | Call       Code   Code    -- Function Code
+          | Catch      String         -- String
+          | Define     String Code    -- String Function
+          | Defspecial String Code    -- String Function
+          | From       String String  -- Modname Identifier
+          | Link       String Code    -- String Code
+          | Primitive  Prim   Integer -- Type Int
+          | Seq        Code   Code    -- Code Code
+          | The        Type   Code    -- Type Code
+          | Throw      String Code    -- String Code
+          | Tuple      [Code]         -- [Code]
+          deriving (Eq, Ord, Read, Show)
 
-parseExpr :: String -> [Indent] -> 
-parseExpr filename is = let (l:e) = lets `span` is
-                        in ["let", parseLets l, parseE e)
+parse :: [(String, Indent)] -> IO (String, [Environment])
+parse files = do
+  let usefile = case "use" `lookup` files of
+                  Just x  -> x
+                  Nothing -> error "Couldn't find use file"
+  (name, setup) <- parseUse usefile
+  let (setup', files') = foldl parseHeader (setup, []) $ filter (\x -> fst x /= "use") files
+  return (name, foldl parseBody setup' files')
   where
-  parseLets :: [Indent] -> ParseTree
-  parseLets (x:xs) 
-
-
-lets :: Indent -> Bool
-lets (Line _ toks) = case snd `map` toks of
-                       (Type _:Name _:Keyword "=":_:_) -> True
-                       _                               -> False
-lets _             = False
-
-getSymbolTable :: Indent -> [SymbolTable] -> SymbolTable
-getSymbolTable i = 
-
-desugar :: Indent -> [SymbolTable] -> ParseTree
-desugar toks = undefined
+  parseUse :: Indent -> IO (String, [Environment])
+  parseUse (Indent [(Line 1 xs)]) | xs `match` listOf1 (Keyword "->") isEnd (one isType) =
+    let ss = getS `map` (fst $ getList1 isEnd xs)
+    in do envs <- getEnv `mapM` tail ss
+          return (head ss, E.empty : envs)
+  parseUse _ = error "Couldn't parse use file"
+    where
+    getS :: Token -> String
+    getS (Type s) = s

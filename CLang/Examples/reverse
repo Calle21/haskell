@@ -1,4 +1,0 @@
-Ls E reverse (Ls E ls) = go (Ls E acc = void, Ls E ls = ls)
-  if ls == void
-    acc
-    else go (acc = ls.car `cons` acc, ls = ls.cdr)
