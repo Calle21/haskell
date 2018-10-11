@@ -1,0 +1,17 @@
+~ (Char c) = intermediate Int
+             #c
+
+~ (Int n)  = intermediate Char
+             #n
+
+~ ({A} seq) = rec (acc = void, i = seq.end)
+  if i < 0
+    acc the List
+    rec (seq[i] : acc, i - 1)
+
+~ (List A ls)
+  len = lenlist ls
+  rec (seq = seq len, ls = ls, i = 0)
+    if ls.null
+      seq the {A}
+      else rec (set seq[i] to ls.car, ls.cdr, i + 1)

@@ -1,0 +1,7 @@
+abs (Int n) = if minus n
+                n * -1 \\ Strength reduction
+                else n
+
+abs (Float f) = if minus f
+                  f * -1.0 \\ Strength reduction
+                  else f

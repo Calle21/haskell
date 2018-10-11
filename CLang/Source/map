@@ -1,0 +1,5 @@
+map (List a ls, B <- A f)
+  if ls.null
+    void
+    else
+    f ls.car : ls.cdr.map f

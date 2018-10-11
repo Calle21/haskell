@@ -1,0 +1,6 @@
+drop (Int n) from ({E} seq)
+  newstart = seq.start + n
+  if newstart <= seq.end
+    set seq.start to newstart
+    else
+    error "Can't drop that many elements from this sequence : %0" {show seq}
