@@ -1,0 +1,3 @@
+"archs"
+"constant-inline" = yes | no
+"tc"              = yes | no
