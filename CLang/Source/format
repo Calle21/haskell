@@ -1,18 +1,19 @@
 format (String s, {String} args)
-  numargs = args.size
-  len = loop (i = 0, len = 0)
+  numargs = length of args
+  len = loop (i = 0, len = 0, s = (~ s) the Sequence)
           c = s[i]
           if
-           c == '%' -> c = s[i + 1]
+           c == '{' -> s      = cdr s
+                       (s0,s) = span digit on s
                        if
-                        c == '%' -> loop (i + 2, len + 1)
-                        c.null   -> error "format string ended with %"
-                         else if d = chartoint c
-                                if d < numargs then lens = strlen \ args[d]
-                                                    loop (i + 2, len + lens)
-                                  else error "Not that many arguments"
-                                else
-                                error "Not a numeric char after % in format string"
+                        car s != '}' -> error "Expected a } after {"
+                        null s0      -> error "Expected digit after {"
+                         else
+                         s = cdr s
+                         d = (~ s0) the Int
+                         if d < numargs then lens = strlen \ args[d]
+                                             loop (i + 2 + length of s0, len + lens)
+                           else error "Not that many arguments"
            c.null   -> len + 1
             else
             loop (i + 1, len + 1)
@@ -20,16 +21,12 @@ format (String s, {String} args)
     s
     else
     unbind numargs
-    write (arr = array len, i0 = 0, i1 = 0)
+    write (arr = array len the String, i0 = 0, i1 = 0)
       c = s[i0]
       if
-       c == '%' -> c = s[i0 + 1]
-                   if c == '%'
-                     write (set arr[i1] to '%', i0 + 2, i1 + 1)
-                     else
-                     d        = safe \ chartoint c
-                     (arr,i1) = strwrite (args[d], arr, i1)
-                     write (arr, i0 + 2, i1)
-       c.null   -> arr the String
+       c == '{' -> (d,i0) = readint (arr, i0 + 1)
+                   (arr,i1) = strwrite (args[d], arr, i1)
+                   write (arr, i0 + 1, i1)
+       c.null   -> arr
         else
         write (set arr[i1] to c, i0 + 1, i1 + 1)

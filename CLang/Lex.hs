@@ -31,7 +31,7 @@ lex paths = do
           | p $ head inp = (n, inp)
           | otherwise    = loop (n + 1) p (tail inp)
       token :: Char -> (Token, Int, String)
-      token c = if c `elem` ".,()[]{}$" then (Punct c, 1, tail inp)
+      token c = if c `elem` ".,()[]{}" then (Punct c, 1, tail inp)
                 else case c of
                   '"'  -> getString "" 1 (tail inp)
                   '\'' -> let (p,n) = inp =~ "^'([^\\\\']|(\\\\([nt\\\\']|x[0-9a-fA-F]{2})))'" :: (Int,Int)

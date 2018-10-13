@@ -12,4 +12,5 @@
                       intermediate Float
                       (sub #a #b)
 
-
+(Char a) - (Char b) = intermediate Char
+                      (sub #a #b)

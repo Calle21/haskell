@@ -1,6 +1,6 @@
 module Nova.Parse.Enum (parseEnum) where
 
-parseEnum :: (Setup, FilePath, [Indent]) -> (Setup, FilePath, [Indent])
+parseEnum :: SpecialParse
 parseEnum (m:ms, path, y:ys) =
   let (ln,xs) = theLine y path
   in if xs `match` one isType >=> one isEqual >=> listof1 (Punct ',') isEnd isTags

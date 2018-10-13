@@ -6,12 +6,17 @@
 
 ~ ({A} seq) = rec (acc = void, i = seq.end)
   if i < 0
-    acc the List
+    acc the List A
     rec (seq[i] : acc, i - 1)
 
 ~ (List A ls)
-  len = lenlist ls
-  rec (seq = seq len, ls = ls, i = 0)
+  rec (seq = seq ls.length, ls = ls, i = 0)
     if ls.null
       seq the {A}
       else rec (set seq[i] to ls.car, ls.cdr, i + 1)
+
+~ ({Char} seq) = read (sum = 0, i = seq.start)
+                   if i == seq.end
+                     sum
+                     else
+                     read (sum * 10 + ~ (seq[i] - '0'), i + 1)

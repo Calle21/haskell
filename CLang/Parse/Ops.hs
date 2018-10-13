@@ -1,32 +1,24 @@
-module Parse.Ops (parseOps) where
+module Nova.Parse.Ops (parseOps) where
 
-import CLang.Types
+import Nova.Parse.Util
+import Nova.Types
 
-parseOps :: Setup -> Indent -> Setup
-parseOps setup (Line ln (x:xs)) =
-  case snd x of
-    Keyword "infixr"  -> case one isInt xs of
-                           Just xs' -> makeIt xs' $ Infixr $ getp $ head xs
-                           Nothing  -> pError ln "ops" "Expected int after infixr"
-    Keyword "infixl"  -> case one isInt xs of
-                           Just xs' -> makeIt xs' $ Infixl $ getp $ head xs
-                           Nothing  -> pError ln "ops" "Expected int after infixl"
-    Keyword "prefix"  -> makeIt xs Prefix
-    Keyword "postfix" -> makeIt xs Postfix
-    _                 -> pError ln "ops" "Oops.."
+parseOps :: SpecialParse
+parseOps (m:ms, _, y:ys) =
+  let (ln,xs) = theLine y "ops"
+  in if xs `match` aFixity >=> oneOrMore isOpname >=> isEnd
+     then let (s,xs') = (gets $ head xs, tail xs)
+          in case s of
+               "infixr"  -> withStrength Infixr xs'
+               "infixl"  -> withStrength Infixl xs'
+               "prefix"  -> makeIt Prefix  xs'
+               "postfix" -> makeIt Postfix xs'
+     else pError ln "ops" "Couldn't parse fixity"
   where
-  makeIt :: Fixity -> Setup
-  makeIt fix = case xs of
-                 (p:ops) -> case p of
-                              (_, TInt p') -> let ops' = map getSS ops
-                                              in if null ops' then pError ln "ops" "Must supply at least one operator here"
-                                                 else foldl (insertIt fix p') setup ops
-                              _            -> pError ln "ops" "Expected an int"
-                 _       -> pError ln "ops" "Hmm..."
+  withStrength :: (Int -> Fixity) -> [Tok] -> (Setup, [Indent])
+  withStrength mkfn (x:xs) = makeIt xs $ mkfn $ geti $ head xs
+  makeIt :: Fixity -> [Tok] -> (Setup, [Indent])
+  makeIt fix xs = (foldl (insertIt fix) setup xs, ys)
     where
-    getSS :: (Int, Token) -> String
-    getSS (_, Opname s) = s
-    getSS _             = pError ln "ops" "That was not an operator name"
-
-insertIt :: Setup -> String -> Setup
-insertIt fix p (m:ms) name =
+    insertIt :: Fixity -> Setup -> Tok -> Setup
+    insertIt fix (m:ms) (_, t) = m {fixity = insert (getS t) fix $ fixity m} : ms

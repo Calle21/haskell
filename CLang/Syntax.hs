@@ -22,9 +22,11 @@ reserved s = s `elem` ["->",
                        "the",
                        "mkarray",
                        "module",
+                       "mutable",
                        "no",
                        "postfix",
                        "prefix",
+                       "scope",
                        "sizeof",
                        "static",
                        "struct",
@@ -37,7 +39,7 @@ reserved s = s `elem` ["->",
                        "where",
                        "yes"]
 
-specialChars = "\\-+*/<>=&|@~%!#:^"
+specialChars = "\\!#$%&*+-/:<=>@^|~"
 
 symChar :: Char -> Bool
 symChar c = c >= 'a' && c <= 'z' ||

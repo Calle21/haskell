@@ -2,10 +2,21 @@ module Nova.Parse.Util where
 
 import Nova.Ubi
 
+infix 1 `match`
+
 match :: [Tok] -> PMonad -> Bool
-match xs m = isJust $ m xs
+xs `match` m = isJust $ m xs
 
  -- Monads
+
+aFixity :: PMonad
+aFixity (x:xs) = case snd x of
+                   (Reserved "infixr")  -> one isInt xs
+                   (Reserved "infixl")  -> one isInt xs
+                   (Reserved "postfix") -> Just xs
+                   (Reserved "prefix")  -> Just xs
+                   _                    -> Nothing
+aFixity []     = Nothing
 
 aType :: PMonad
 aType = oneOrMore (isType `or` isVartype)
@@ -81,6 +92,8 @@ listOf2 sep end cont xs = case cont xs of
 
 is :: Token -> TokP
 is t = \(_, x) -> x == t
+
+infixr 2 `or`
 
 or :: TokP -> TokP -> TokP
 or f0 f1 = (\x -> f0 x || f1 x)
@@ -188,28 +201,20 @@ getList1 end xs = loop acc xs
                   Just xs' -> (reverse acc, xs')
                   Nothing  -> loop (snd (head xs) : acc) (drop 2 xs)
 
-geti :: Tok -> Int
-geti (_, AInt i) = i
-
-getS :: Token -> String
-getS (Name s)    = s
-getS (Type s)    = s
-getS (Keyword s) = s
-getS (Opname s)  = s
-getS (Vartype s) = s
-getS (Infix s)   = s
-getS (Special s) = s
-getS (TString s) = s
-
-gets :: Tok -> String
-gets = getS . snd
-
 theLine :: Indent -> String -> (Int, [Tok])
 theLine (Line ln xs) _       = (ln, xs)
 theLine (Indent ys) filename = pError (getLine $ head ys) filename "Unexpected indentation"
 
 trep :: Tok -> String
 trep (_, Name s)    = s
-trep (_, Punct _)   = "|"
+trep (_, Punct ',') = "|"
 trep (_, Type s)    = s
 trep (_, Vartype s) = s
+
+ -- Parsing
+
+infix 4 `isAutoCompatible`
+
+isAutoCompatible :: String -> String -> Bool
+s0 `isAutoCompatible` s1 = let s0' = if s0 =~ "[a-z]+[0-9]+" then dropUntil isDigit s0 else s0
+                           in s0' == s1

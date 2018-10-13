@@ -6,16 +6,33 @@ import Data.Ord (comparing)
 import Data.Word (Word)
 import Nova.Error
 import Nova.Types
-import Prelude hiding (getLine, lex)
+import Prelude hiding (getLine, lex, delete)
 import Text.Regex.PCRE((=~))
 
-infixr 2 or
-infix  1 match
+isAnnotation :: String -> Bool
+isAnnotation s = s `elem` ["mutable",
+                           "static"]
 
-tags :: String -> Bool
-tags s = s =~ "[a-z]+"
+delete' :: (a -> Bool) -> [a] -> [a]
+delete' pred (x:xs) | pred x    = xs
+                    | otherwise = x : delete' pred xs
+delete' _    []     = []
 
-specialFiles = ["chain",
+deleteIf :: (a -> Bool) -> [a] -> [a]
+deleteIf pred ls = if any pred ls
+                   then delete' pred ls
+                   else ls
+
+dropUntil :: (a -> Bool) -> [a] -> [a]
+dropUntil pred = dropWhile (not . pred)
+
+putFirst :: (a -> Bool) -> [a] -> [a]
+putFirst pred ls = if any pred ls
+                   then find pred ls : delete pred ls
+                   else ls
+
+specialFiles = ["autotag",
+                "chain",
                 "enum",
                 "ops",
                 "struct",
@@ -24,3 +41,6 @@ specialFiles = ["chain",
                 "type",
                 "union",
                 "use"]
+
+tags :: String -> Bool
+tags s = s =~ "[a-z]+"

@@ -1,0 +1,39 @@
+compare (Int i0) with (Int i1) the Comparison
+  if
+   i0 > i1 -> gt
+   i0 < i1 -> lt
+    else
+    eq
+
+compare (Float f0) with (Float f1) the Comparison
+  if
+   f0 > f1 -> gt
+   f0 < f1 -> lt
+    else
+    eq
+
+compare (Char c0) with (Char c1) the Comparison
+  if
+   f0 > f1 -> gt
+   f0 < f1 -> lt
+    else
+    eq
+
+compare (String s0) with (String s1) the Comparison = rec (i = 0)
+  case of compare #c s0[i] with s1[i]
+    lt   -> lt
+    gt   -> gt
+    eq   -> if #c == '\0'
+              eq
+              else
+              rec (i + 1)
+
+compare ({E} seq0) with ({E} seq1) the Comparison
+  rec (i = seq.start)
+    if i == seq.end
+      eq
+      else
+      case of compare seq0[i] with seq1[i]
+        lt  -> lt
+        gt  -> gt
+        eq  -> rec (i + 1)

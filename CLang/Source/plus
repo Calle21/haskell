@@ -11,3 +11,6 @@
 (Float a) + (Int b) = b = ~ b the Float
                       intermediate Float
                       (add #a #b)
+
+(Char a) + (Char b) = intermediate Char
+                      (add #a #b)
