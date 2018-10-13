@@ -1,47 +1,26 @@
-module CLang.Parse (parse) where
+module Nova.Parse (parse) where
 
-import CLang.Lex(Token)
-import qualified CLang.Env as E
-import CLang.Env(getEnv)
-import CLang.Parse.Match(match)
-import CLang.Parse.Header(parseHeader)
-import CLang.Parse.Body(parseBody)
-import Data.Foldable(foldlM)
-import Control.Monad(>=>)
+import Nova.Parse.File
+import Nova.Parse.Ops
+import Nova.Parse.Synonym
+import Nova.Parse.Use
+import Nova.Ubi
 
-data Prim = Signed Int | Unsigned Int deriving (Eq, Ord, Read, Show)
-
-type Type = [String]
-
-data Code = Array      Type   [Code]  -- Type [Code]
-          | Call       Code   Code    -- Function Code
-          | Catch      String         -- String
-          | Define     String Code    -- String Function
-          | Defspecial String Code    -- String Function
-          | From       String String  -- Modname Identifier
-          | Link       String Code    -- String Code
-          | Primitive  Prim   Integer -- Type Int
-          | Seq        Code   Code    -- Code Code
-          | The        Type   Code    -- Type Code
-          | Throw      String Code    -- String Code
-          | Tuple      [Code]         -- [Code]
-          deriving (Eq, Ord, Read, Show)
-
-parse :: [(String, Indent)] -> IO (String, [Environment])
+parse :: [(FilePath, Indent)] -> IO [(String, Module)]
 parse files = do
-  let usefile = case "use" `lookup` files of
-                  Just x  -> x
-                  Nothing -> error "Couldn't find use file"
-  (name, setup) <- parseUse usefile
-  let (setup', files') = foldl parseHeader (setup, []) $ filter (\x -> fst x /= "use") files
-  return (name, foldl parseBody setup' files')
-  where
-  parseUse :: Indent -> IO (String, [Environment])
-  parseUse (Indent [(Line 1 xs)]) | xs `match` listOf1 (Keyword "->") isEnd (one isType) =
-    let ss = getS `map` (fst $ getList1 isEnd xs)
-    in do envs <- getEnv `mapM` tail ss
-          return (head ss, E.empty : envs)
-  parseUse _ = error "Couldn't parse use file"
-    where
-    getS :: Token -> String
-    getS (Type s) = s
+  let (specfiles,novafiles)  = partition (\(path,_) -> path `elem` specialFiles) files
+  let ([usefile],specfiles') = partition (\(path,_) -> path == "use")            specfiles
+  mods <- parseUse usefile
+  let mods' = foldl parseSpecialFile mods $ sortBy (comparing fst) specfiles' -- puts "chain" and "ops" before "tag"
+  return $ foldl parseFile setup novafiles
+
+parseSpecialFile :: Setup -> (FilePath, Indent) -> Setup
+parseSpecialFile setup (path,Indent ys) = case path of -- Compiler sorts out other entries
+                                            "chain"   -> foldit parseChain 
+                                            "enum"    -> 
+                                            "ops"     ->
+                                            "struct"  ->
+                                            "synonym" ->
+                                            "tag"     ->
+                                            "type"    ->
+                                            "union"   ->

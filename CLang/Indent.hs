@@ -1,47 +1,36 @@
-module CLang.Indent (indent, Indent(..), getLine, getColumn) where
+module CLang.Indent (indent) where
 
-import Prelude hiding (getLine)
+import CLang.Types
 import CLang.Error
-import CLang.Lex(Token, RTok)
 
-data Indent = Line Int [LTok]
-            | Indent [Indent]
-            deriving (Eq, Read, Show)
-
-getLine :: Indent -> Int
-getLine (Line ln _) = ln
-getLine (Indent xs) = getLine $ head xs
-
-getColumn :: Indent -> Int
-getColumn (Line _ ((c,_):_) = c
-getColumn (Indent (x:_))   = getColumn x
-
-indent :: [(String, [RTok])] -> [(String, Indent)]
+indent :: [(String, [LTok])] -> [(String, Indent)]
 indent files = doIt `map` files
   where
-  doIt :: (String, [RTok]) -> (String, Indent)
+  doIt :: (String, [LTok]) -> (String, Indent)
   doIt (filename, ls) = (filename, fst $ getIndent [] 1 ls)
     where
-    getIndent :: [Indent] -> Int -> [RTok] -> (Indent, [RTok])
+    getIndent :: [Indent] -> Int -> [LTok] -> (Indent, [LTok])
     getIndent acc level toks@(x:_) =
-      case col x `compare` level of
-        LT  -> (Indent level $ reverse acc, toks)
-        EQ  -> let (l,toks') = getLine [] (line x) toks
+      case getcl x `compare` level of
+        LT  -> return (acc, toks)
+        EQ  -> let (l,toks') = getLine [] (getln x) 0 toks
                in getIndent (l : acc) level toks'
-        GT  -> let (i,toks') = getIndent [] (col x) toks
+        GT  -> let (i,toks') = getIndent [] (getcl x) toks
                    acc'      = i : acc
-               in if null toks' || col (head toks') < level
-                  then (Indent level $ reverse acc', toks')
+               in if null toks' || getcl (head toks') < level
+                  then return (acc', toks')
                   else getIndent acc' level toks'
-    getIndent acc level _ = (Indent level $ reverse acc, [])
-    getLine :: [LTok] -> Int -> [RTok] -> (Indent, [RTok])
-    getLine acc ln (x:xs)
-      | ln == line x  = getLine ((col x, token x) : acc) ln xs
-    getLine acc ln xs = (Line ln $ reverse acc, xs)
-
-col, line :: RTok -> Int
-col  (c, _, _) = c
-line (_, l, _) = l
-
-token :: RTok -> Token
-token (_, _, t) = t
+    getIndent acc _     _ = return (acc, [])
+    return :: ([Indent], [LTok]) -> (Indent, [LTok])
+    return (acc,toks) = (Indent $ reverse acc, toks)
+    getLine :: [Tok] -> Int -> Int -> [LTok] -> (Indent, [LTok])
+    getLine acc ln end (x:xs)
+           | ln == getln x = if gettk x == Keyword "\\"
+                            then getLine ((getcl x, Punct '(') : acc) ln (end + 1) xs
+                            else getLine ((getcl x, gettk x) : acc) ln end xs
+    getLine acc ln end xs = (Line ln $ reverse (npunct end acc), xs)
+      where
+      npunct :: Int -> [Tok] -> [Tok]
+      npunct 0 toks = toks
+      npunct n ts = let c = getColumn $ head ts
+                    in npunct (n - 1) $ (ln, c + 1, Punct ')') : toks

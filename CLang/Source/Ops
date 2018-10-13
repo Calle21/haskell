@@ -1,7 +1,0 @@
-infixl 7 + -
-infixl 8 * /
-infixl 6 =>
-prefix 7 ~
-
-(Int a) + (Int b) = intermediate
-                    (add #a #b)

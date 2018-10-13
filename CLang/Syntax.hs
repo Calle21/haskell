@@ -1,38 +1,46 @@
-module CLang.Syntax (symChar, specialChars, keyword) where
+module Nova.Syntax (reserved, specialChars, symChar) where
+
+reserved s = s `elem` ["->",
+                       "...",
+                       "::",
+                       ":=",
+                       "<-",
+                       "=",
+                       "\\",
+                       "_",
+                       "catch",
+                       "else",
+                       "enum",
+                       "go",
+                       "has",
+                       "if",
+                       "infixl",
+                       "infixr",
+                       "intermediate",
+                       "is",
+                       "let",
+                       "the",
+                       "mkarray",
+                       "module",
+                       "no",
+                       "postfix",
+                       "prefix",
+                       "sizeof",
+                       "static",
+                       "struct",
+                       "tag",
+                       "throw",
+                       "type",
+                       "typecase",
+                       "unbind",
+                       "union",
+                       "where",
+                       "yes"]
+
+specialChars = "\\-+*/<>=&|@~%!#:^"
 
 symChar :: Char -> Bool
 symChar c = c >= 'a' && c <= 'z' ||
             c >= 'A' && c <= 'Z' ||
             c >= '0' && c <= '9' ||
-            c `elem` "_`" ++ specialChars
-
-specialChars = "\\-+*/<>=&|@~%$!.#:"
-
-keywords  = ["_",
-             "=",
-             ":=",
-             ">>",
-             "->",
-             "=>",
-             "<-",
-             "...",
-             "catch",
-             "else",
-             "false",
-             "from",
-             "goto",
-             "has",
-             "if",
-             "infix",
-             "is",
-             "the",
-             "module",
-             "struct",
-             "tag",
-             "throw",
-             "true",
-             "type",
-             "union",
-             "where"]
-
-keyword s = s `elem` keywords
+            c `elem` "_" ++ specialChars

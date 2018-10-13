@@ -1,4 +1,0 @@
-numeric (Char c) = someof
-  '0' <= c <= '9'
-  'a' <= c <= 'z'
-  'A' <= c <= 'Z'
