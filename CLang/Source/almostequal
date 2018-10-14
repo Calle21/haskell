@@ -1,5 +1,0 @@
-(Int n) ~~ (Float f) = almost (n, f)
-
-(Float f) ~~ (Int n) = almost (f, n)
-
-(Float f0) ~~ (Float f1) = almost (f0, f1)
