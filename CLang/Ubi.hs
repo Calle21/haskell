@@ -5,6 +5,7 @@ import Data.List(find, insertBy, intercalate, isPrefixOf, partition, sortBy)
 import Data.Ord (comparing)
 import Data.Word (Word)
 import Nova.Error
+import Nova.Lex(lexline)
 import Nova.Types
 import Prelude hiding (getLine, lex, delete)
 import Text.Regex.PCRE((=~))
@@ -25,6 +26,11 @@ deleteIf pred ls = if any pred ls
 
 dropUntil :: (a -> Bool) -> [a] -> [a]
 dropUntil pred = dropWhile (not . pred)
+
+mapWI :: (Int -> a -> b) -> [a] -> [b]
+mapWI = rec 0
+ where rec i f (x:xs) = f i x : rec (i + 1) f xs
+       rec _ _ []     = []
 
 none :: (a -> Bool) -> [a] -> Bool
 none pred = all (not . pred)

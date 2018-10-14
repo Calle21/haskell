@@ -5,6 +5,7 @@ type Comparison = lt | eq | gt
 type Fail       = fail
 type Float      = floating
 type Int        = signed
+synonym 
 union Maybe A   = A, Fail
 
 struct Cons E

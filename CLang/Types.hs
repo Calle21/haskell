@@ -86,9 +86,10 @@ gettk :: Lex -> Token
 gettk (_, _, t) = t
 
 
-newtype Local = Local {bind        :: Binding,
-                       annotations :: [String])
-              deriving (Read, Show)
+data Local = Local {bind        :: Binding,
+                    annotations :: [String])
+           | Locals [Binding]
+           deriving (Read, Show)
 
 
 type MChain = [(String, String)]
@@ -218,6 +219,9 @@ checkType xs = undefined
 getTupleElements :: Type -> [Type]
 getTupleElements t = if tuple t then split "," $ init $ tail t
                       else error "Called on single"
+
+mkFNtype :: Type -> Type -> Type
+mkFNtype ret param = ret ++ ["<-"] ++ param
 
 safeGetTupleElements :: Type -> [Type]
 safeGetTupleElements t = if single t then t else getTupleElements t
