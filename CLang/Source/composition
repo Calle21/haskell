@@ -4,4 +4,4 @@
 
 (Bool <- A f0) || (Bool <- A f1) = arg -> arg.f0 | arg.f1
 
-!! (Bool <- A f) = arg -> not (f arg)
+!! (Bool <- A f) = arg -> not (f (arg))

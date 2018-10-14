@@ -3,6 +3,20 @@ module Nova.Types where
 import Data.Map.Strict (Map)
 import Prelude hiding (getLine)
 
+data Binding = Binding {locals  :: [Binding],
+                        pattern :: Pattern,
+                        params  :: BindPat
+                        value   :: Code}
+              deriving (Read, Show)
+
+ {- instance Ord Binding where
+  compare :: Binding -> Binding -> Ordering
+  compare b0 b1 = compare (pattern b0) (pattern b1) -}
+
+
+type BindPat = [String]
+
+
 data Code = Array      [String] [Code]
           | Callop     String Code
           | Catch      String
@@ -72,10 +86,9 @@ gettk :: Lex -> Token
 gettk (_, _, t) = t
 
 
-newtype Local = Local (Identifier, [Overload]) deriving (Read, Show)
-
-
-newtype Locals = Locals (Map Identifier [Overload])
+newtype Local = Local {bind        :: Binding,
+                       annotations :: [String])
+              deriving (Read, Show)
 
 
 type MChain = [(String, String)]
@@ -83,35 +96,42 @@ type MChain = [(String, String)]
 type MFix = Map String Fixity
 
 data Module = Module {autotags :: [([String],String)],
+                      bindings :: [Binding],
                       chains   :: [(String,String)],
                       fixity   :: Map String Fixity,
-                      types    :: Map [String] [String],
-                      values   :: Map Identifier [Overload]}
+                      tags     :: Map String Type BindPat Code
+                      types    :: Map [String] [String]}
               deriving (Read, Show)
 
 type MTag = [([String],String)]
 
 type MTyp = Map [String] [String]
 
-type MVal = Map Identifier [Overload]
+type MVal = Map Identifier [Binding]
 
 
-data Overload = Overload {annotations :: [String],
-                          pattern     :: [Pattern],
-                          rettype     :: [String],
-                          value       :: Code}
-              deriving (Read, Show)
+data Pat = PatK String
+         | PatT Type
+         deriving (Ord, Read, Show)
 
+patCompat :: Setup -> Pat -> Pat -> Bool
+patCompat _     (PatK s0) (PatK s1) = s0 == s1
+patCompat _     (PatK _)  (PatT _)  = True
+patCompat setup (PatT t0) (PatT t1) = typeCompat setup t0 t1
+patCompat _     _         _         = False
 
-data Pattern = PatS String
-             | PatT [String]
-
-getTypeAsTuple :: [Pattern] -> [String]
+getTypeAsTuple :: [Pat] -> Type
 getTypeAsTuple pat = typeConcat $ filterIt pat
   where
   filterIt ((PatT t):xs) = t : filterIt xs
-  filterIt ((PatS _):xs) = filterIt xs
+  filterIt ((PatK _):xs) = filterIt xs
   filterIt []            = []
+
+
+newtype Pattern = Pattern (Type, [Pat]) deriving (Ord, Read, Show)
+
+patternCompat :: Setup -> Pattern -> Pattern -> Bool
+patternCompat setup (ret0, pat0) (ret1, pat1) = typeCompat setup ret0 ret1 && every (uncurry patCompat) (pat0 `zip` pat1)
 
 
 type PMonad = [Tok] -> Maybe [Tok]
@@ -148,25 +168,25 @@ gets :: Tok -> String
 gets (_, t) = getS t
 
 
-data Token = AChar Char
-           | AFloat Float
-           | AInt Int
-           | AString String
-           | HashI Int
-           | HashBind String
-           | Name String
-           | Opname String
-           | Punct Char
-           | Reserved String
-           | Special String
-           | Tag String
-           | Type String
-           | Vartype String
-           deriving (Show, Read)
+data Token = AChar       Char
+           | AFloat      Float
+           | AInt        Int
+           | AString     String
+           | HashI       Int
+           | HashBind    String
+           | Keyword     String
+           | Op          String
+           | Punctuation Char
+           | Reserved    String
+           | Special     String
+           | Tag         String
+           | Type        String
+           | Vartype     String
+           deriving (Read, Show)
 
 getC :: Token -> Char
-getC (AChar c) = c
-getC (Punct c) = c
+getC (AChar c)       = c
+getC (Punctuation c) = c
 
 getF :: Token -> Float
 getF (AFloat f) = f
@@ -178,8 +198,8 @@ getI (HashI i) = i
 getS :: Token -> String
 getS (AString s)  = s
 getS (HashBind s) = s
-getS (Name s)     = s
-getS (Opname s)   = s
+getS (Keyword s)  = s
+getS (Op s    )   = s
 getS (Reserved s) = s
 getS (Special s)  = s
 getS (Tag s)      = s
@@ -192,13 +212,37 @@ type TokP = Tok -> Bool
 
 type Type = [String]
 
-typeConcat :: [Type] -> Type
-typeConcat []     = ["(",")"]
-typeConcat (x:xs) = foldl conc2 x xs
+checkType -> Type -> Maybe Type
+checkType xs = undefined
+
+getTupleElements :: Type -> [Type]
+getTupleElements t = if tuple t then split "," $ init $ tail t
+                      else error "Called on single"
+
+safeGetTupleElements :: Type -> [Type]
+safeGetTupleElements t = if single t then t else getTupleElements t
+
+single :: Type -> Bool
+single = not . tuple
+
+tuple :: Type -> Bool
+tuple (x:xs) = x == "("
+
+typeCompat :: Setup -> Type -> Type -> Bool
+typeCompat t0 t1 = let ts = [t0, t1]
+                   in if all single ts then singleCompat ts
+                      else if all tuple ts
+                           then let [elts0,elts1] = getTupleElements `map` ts
+                                in length elts0 == length elts1 && all (uncurry $ typeCompat setup) (elts0 `zip` elts1)
+                           else False
   where
-  conc2 :: Type -> Type -> Type
-  conc2 ["(",")"] ys = ys
-  conc2 xs ["(",")"] = xs
-  conc2 xs ys        = let xs' = if head xs == "(" then init xs else "(" : xs
-                           ys' = if head ys == "(" then tail ys else ys ++ [")"]
-                       in xs' ++ [","] ++ ys'
+  singleCompat :: [Type] -> Bool
+  singleCompat ts@[t0,t1] = if any vartype ts then True
+                            else t0 == t1
+
+typeConcat :: [Type] -> Type
+typeConcat xs = "(" : intercalate [","] (safeGetTupleElements `map` xs) ++ [")"]
+
+vartype :: Type -> Bool
+vartype [[c]] = isUpper c
+vartype _   = False

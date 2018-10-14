@@ -1,7 +1,7 @@
 module Nova.Ubi where
 
 import Data.Char (isLower, isUpper)
-import Data.List(find, isPrefixOf, partition, sortBy)
+import Data.List(find, insertBy, intercalate, isPrefixOf, partition, sortBy)
 import Data.Ord (comparing)
 import Data.Word (Word)
 import Nova.Error
@@ -26,6 +26,9 @@ deleteIf pred ls = if any pred ls
 dropUntil :: (a -> Bool) -> [a] -> [a]
 dropUntil pred = dropWhile (not . pred)
 
+none :: (a -> Bool) -> [a] -> Bool
+none pred = all (not . pred)
+
 putFirst :: (a -> Bool) -> [a] -> [a]
 putFirst pred ls = if any pred ls
                    then find pred ls : delete pred ls
@@ -41,6 +44,11 @@ specialFiles = ["autotag",
                 "type",
                 "union",
                 "use"]
+
+split :: (Eq a) => a -> [a] -> [[a]]
+split elt xs = let (f,r) = break (==elt) xs
+               in if null r then [f]
+                  else f : split elt (tail r)
 
 tags :: String -> Bool
 tags s = s =~ "[a-z]+"

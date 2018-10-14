@@ -3,32 +3,32 @@ module CLang.Indent (indent) where
 import CLang.Types
 import CLang.Error
 
-indent :: [(String, [LTok])] -> [(String, Indent)]
+indent :: [(FilePath, [Lex])] -> [(FilePath, Indent)]
 indent files = doIt `map` files
   where
-  doIt :: (String, [LTok]) -> (String, Indent)
-  doIt (filename, ls) = (filename, fst $ getIndent [] 1 ls)
+  doIt :: (FilePath, [Lex]) -> (FilePath, Indent)
+  doIt (path, xs) = (path, fst $ getIndent [] 1 xs)
     where
-    getIndent :: [Indent] -> Int -> [LTok] -> (Indent, [LTok])
+    getIndent :: [Indent] -> Int -> [Lex] -> (Indent, [Lex])
     getIndent acc level toks@(x:_) =
-      case getcl x `compare` level of
-        LT  -> return (acc, toks)
-        EQ  -> let (l,toks') = getLine [] (getln x) 0 toks
-               in getIndent (l : acc) level toks'
-        GT  -> let (i,toks') = getIndent [] (getcl x) toks
-                   acc'      = i : acc
+      case level `compare` getcl x of
+        GT  -> make (acc, toks)
+        EQ  -> let (y,toks') = getLine [] (getln x) 0 toks
+               in getIndent (y : acc) level toks'
+        LT  -> let (y,toks') = getIndent [] (getcl x) toks
+                   acc'      = y : acc
                in if null toks' || getcl (head toks') < level
-                  then return (acc', toks')
+                  then make (acc', toks')
                   else getIndent acc' level toks'
-    getIndent acc _     _ = return (acc, [])
-    return :: ([Indent], [LTok]) -> (Indent, [LTok])
-    return (acc,toks) = (Indent $ reverse acc, toks)
-    getLine :: [Tok] -> Int -> Int -> [LTok] -> (Indent, [LTok])
-    getLine acc ln end (x:xs)
-           | ln == getln x = if gettk x == Keyword "\\"
-                            then getLine ((getcl x, Punct '(') : acc) ln (end + 1) xs
-                            else getLine ((getcl x, gettk x) : acc) ln end xs
-    getLine acc ln end xs = (Line ln $ reverse (npunct end acc), xs)
+    getIndent acc _     _ = make (acc, [])
+    make :: ([Indent], [Lex]) -> (Indent, [Lex])
+    make (acc,toks) = (Indent $ reverse acc, toks)
+    getLine :: [Tok] -> Int -> Int -> [Lex] -> (Indent, [Lex])
+    getLine acc ln backs (x:xs)
+      | getln x == ln = if gettk x == Reserved "\\"
+                         then getLine ((getcl x, Punct '(') : acc) ln (backs + 1) xs
+                         else getLine ((getcl x, gettk x) : acc)   ln  backs      xs
+    getLine acc ln backs xs = (Line ln $ reverse (npunct backs acc), xs)
       where
       npunct :: Int -> [Tok] -> [Tok]
       npunct 0 toks = toks

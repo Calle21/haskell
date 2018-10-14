@@ -1,2 +1,4 @@
-Int n = Natural
-Int p = Positive
+Char d  = Digit
+Float n = Natural
+Int n   = Natural
+Int p   = Positive

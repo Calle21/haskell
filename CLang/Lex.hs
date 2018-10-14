@@ -3,13 +3,13 @@ module Nova.Lex (lex) where
 import Nova.Syntax
 import Nova.Ubi
 
-lex :: [FilePath] -> IO [(String, [Lex])]
+lex :: [FilePath] -> IO [(FilePath, [Lex])]
 lex paths = do
   ss <- readFile `mapM` paths
   return $ leX `map` (paths `zip` ss)
   where
-  leX :: (String, String) -> (String, [Lex])
-  leX (filename, s) = (filename, loop 1 1 s)
+  leX :: (FilePath, String) -> (FilePath, [Lex])
+  leX (path, s) = (path, loop 1 1 s)
     where
     loop :: Int -> Int -> String -> [Lex]
     loop col line inp
@@ -36,10 +36,10 @@ lex paths = do
                   '"'  -> getString "" 1 (tail inp)
                   '\'' -> let (p,n) = inp =~ "^'([^\\\\']|(\\\\([nt\\\\']|x[0-9a-fA-F]{2})))'" :: (Int,Int)
                           in if p == (-1)
-                             then lError col line filename "Bad character token"
+                             then lError col line path "Bad character token"
                              else ((AChar $ read $ take n inp), n, drop n inp)
                   _    -> let (s, inp')                                      = span symChar inp
-                              sym | null s                                   = lError col line filename ("Illegal character : " ++ [c])
+                              sym | null s                                   = lError col line path ("Illegal character : " ++ [c])
                                   | reserved s                               = Reserved s
                                   | names s                                  = Name s
                                   | types s                                  = Type s
@@ -51,7 +51,7 @@ lex paths = do
                                   | s =~ "^\\*[A-Z0-9]+\\*$"                 = Special s
                                   | s =~ "^[A-Z]+$"                          = Vartype s
                                   | s =~ "^[a-zA-Z_][a-zA-Z0-9_]*:$"         = Tag $ init s
-                                  | otherwise                                = lError col line filename ("Bad token : " ++ s)
+                                  | otherwise                                = lError col line path ("Bad token : " ++ s)
                           in (sym, length s, inp')
         where
         names, types :: String -> Bool
@@ -66,6 +66,6 @@ lex paths = do
                                                          't'  -> '\t'
                                                          '\\' -> '\\'
                                                          '"'  -> '"') : acc) (n + 2) (drop 2 s)
-          | s =~ "^\\\\."                = lError (col + n + 1) line filename ("Illegal escape character in string : " ++ [s !! 1])
-          | s =~ "^\\\\?$"               = lError (col + n) line filename "File ended in string literal"
-          | s =~ "^\\x0A"                = lError (col + n) line filename "Literal newlines not allowed in string literals. Try \\n instead"
+          | s =~ "^\\\\."                = lError (col + n + 1) line path ("Illegal escape character in string : " ++ [s !! 1])
+          | s =~ "^\\\\?$"               = lError (col + n) line path "File ended in string literal"
+          | s =~ "^\\x0A"                = lError (col + n) line path "Literal newlines not allowed in string literals. Try \\n instead"
