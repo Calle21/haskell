@@ -1,13 +1,19 @@
-module BitPack where
+module BitPack ( BitPack
+               , bitPack
+               , bitUnpack
+               , lenBitPack
+               , retrieve ) where
 
 import Data.Bits
 import Data.Array
 import Data.Word
 
-bitPack :: Integral a => Int -> Int -> [a] -> Array Int Word
+data BitPack a = BitPack Int Int (Array Int Word)
+
+bitPack :: Integral a => Int -> Int -> [a] -> BitPack a
 bitPack size offset elems = let elems' = if offset == 0 then elems
                                          else map (subtract offset) elems
-                            in bitPack' elems'
+                            in BitPack size offset (bitPack' elems')
   where
   bitPack' :: Integral a => [a] -> Array Int Word
   bitPack' elems
@@ -30,32 +36,35 @@ bitPack size offset elems = let elems' = if offset == 0 then elems
                              | otherwise = let (some,next) = decode wordLength num
                                            in hackIt next (some : accum) (bit - wordLength)
 
-bitUnpack :: Integral a => Int -> Int -> Array Int Word -> [a]
-bitUnpack size offset arr
-  | size < 1  = error "size less than one"
-  | otherwise = let elems = unpack 0
-                in if offset == 0 then elems
-                   else map (+offset) elems
+bitUnpack :: BitPack a -> [a]
+bitUnpack pack@(BitPack size offset arr) = let elems = unpack 0
+                                           in if offset == 0 then elems
+                                              else map (+offset) elems
   where
   unpack :: Int -> [a]
-  unpack bit
-    | storageLeft < size = []
-    | otherwise          = getOne 0 size (bit `divMod` wordLength) : unpack (bit + size)
-       where
-       storageLeft = (fromIntegral $ B.length arr) * wordLength - bit
-       getOne :: a -> Int -> (Int,Int) -> a
-       getOne accum left (ix,bits)
-         | left <= 0 = accum
-         | otherwise = let catch    = arr `B.index` fromIntegral ix
-                           clean    = mask (wordLength - bits) .&. catch
-                           shifted  = (fromIntegral clean :: a) `shift` leftnext
-                           leftnext = left - wordLength + bits
-                       in getOne (accum .|. shifted) leftnext (ix + 1,0)
+  unpack ix
+    | ix == lenBitPack pack = []
+    | otherwise             = retrieve ix pack : unpack (ix + 1)
+
+lenBitPack :: BitPack a -> Int
+lenBitPack (BitPack size _ arr) = (lenarray arr * wordlength) `div` size
+
+retrieve :: Int -> BitPack a -> a
+retrieve n pack@(BitPack size _ arr)
+  | n < 0                = error "Negative index"
+  | n >= lenBitPack pack = error "Index out of bounds"
+  | otherwise            = rec 0 ((size * n) `divMod` wordlength) size
+    where
+    rec :: a -> (Int,Int) -> Int -> a
+    rec accum (ix,off) left
+      | left <= 0 = accum
+      | otherwise = let catch    = arr ! ix
+                        leftnext = left - wordlength + off
+                        shifted  = w `shift` leftnext
+                        clean    = mask (wordlength + leftnext - off) .&. shifted
+                    in rec (accum .|. clean) (ix + 1,0) leftnext
 
  -- Utils
-
-listToArray :: [a] -> Array Int a
-listToArray xs = listArray (0,length xs - 1) xs
 
 decode :: (Integral a, Integral b) => Int -> a -> (b,a)
 decode amount num
@@ -67,6 +76,13 @@ decode amount num
 hup :: (a -> a) -> [a] -> [a]
 hup fn (x:xs) = fn x : xs
 hup _  []     = error "Empty list"
+
+lenarray :: Array Int a -> Int
+lenarray arr = let (a,b) = bounds arr
+               in b - a
+
+listToArray :: [a] -> Array Int a
+listToArray xs = listArray (0,length xs - 1) xs
 
 mask :: Integral a => Int -> a
 mask amount = fromIntegral $ 2 ^ amount - 1
