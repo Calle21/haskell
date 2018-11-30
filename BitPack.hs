@@ -1,72 +1,82 @@
-module BitPack ( BitPack
+module BitPack ( BitPack(..)
                , bitPack
                , bitUnpack
                , lenBitPack
-               , retrieve ) where
+               , retrieve
+               , retrieveBool
+               , sizeBitPack ) where
 
-import Data.Bits
 import Data.Array
+import Data.Bits
 import Data.Word
 
-data BitPack a = BitPack Int Int (Array Int Word)
+data BitPack a = BitPack Int (Integer -> a) Int (Array Int Word)
 
-bitPack :: Integral a => Int -> Int -> [a] -> BitPack a
-bitPack size offset elems = let elems' = if offset == 0 then elems
-                                         else map (subtract offset) elems
-                            in BitPack size offset (bitPack' elems')
+bitPack :: (Integer -> a) -> Int -> [Integer] -> BitPack a
+bitPack conv size elems = BitPack (length elems) conv size (bitPack' elems)
   where
-  bitPack' :: Integral a => [a] -> Array Int Word
+  bitPack' :: [Integer] -> Array Int Word
   bitPack' elems
+    | any (< 0)        elems = error "Some element is negative"
     | all (< 2 ^ size) elems = listToArray $ rec 0 0 elems
     | otherwise              = error "Some element do not fit in given size"
     where
-    rec :: Int -> Word -> [a] -> [Word]
+    rec :: Int -> Word -> [Integer] -> [Word]
     rec bit prev []     = if bit == 0 then [] else [prev]
     rec bit prev (x:xs) = let (prev', packed) = makeOne
-                          in packed ++ rec ((bit + size) `mod` wordLength) prev' xs
+                          in packed ++ rec ((bit + size) `mod` wordlength) prev' xs
       where
       makeOne :: (Word, [Word])
-      makeOne = let shiftamount = wordLength - size `mod` wordLength - bit
+      makeOne = let shiftamount = wordlength - size `mod` wordlength - bit
                     shifted     = x `shift` shiftamount
-                    xs          = hup (.|. prev) $ hackIt shifted [] (size + shiftamount)
-                in (last xs', init xs')
+                    ys          = hup (.|. prev) $ hackIt shifted [] (size + shiftamount)
+                in (last ys, init ys)
         where
-        hackIt :: a -> [Word] -> Int -> [Word]
+        hackIt :: Integer -> [Word] -> Int -> [Word]
         hackIt num accum bit | bit <= 0  = accum
-                             | otherwise = let (some,next) = decode wordLength num
-                                           in hackIt next (some : accum) (bit - wordLength)
+                             | otherwise = let (lowest,rest) = decode wordlength num
+                                           in hackIt rest (lowest : accum) (bit - wordlength)
 
 bitUnpack :: BitPack a -> [a]
-bitUnpack pack@(BitPack size offset arr) = let elems = unpack 0
-                                           in if offset == 0 then elems
-                                              else map (+offset) elems
+bitUnpack pack = unpack 0
   where
-  unpack :: Int -> [a]
   unpack ix
     | ix == lenBitPack pack = []
     | otherwise             = retrieve ix pack : unpack (ix + 1)
 
 lenBitPack :: BitPack a -> Int
-lenBitPack (BitPack size _ arr) = (lenarray arr * wordlength) `div` size
+lenBitPack (BitPack len _ _ _) = len
 
 retrieve :: Int -> BitPack a -> a
-retrieve n pack@(BitPack size _ arr)
-  | n < 0                = error "Negative index"
-  | n >= lenBitPack pack = error "Index out of bounds"
-  | otherwise            = rec 0 ((size * n) `divMod` wordlength) size
+retrieve n pack@(BitPack len conv size arr)
+  | n < 0     = error "Negative index"
+  | n >= len  = error "Index out of bounds"
+  | otherwise = conv $ rec 0 ((size * n) `divMod` wordlength) size
     where
-    rec :: a -> (Int,Int) -> Int -> a
+    rec :: Integer -> (Int,Int) -> Int -> Integer
     rec accum (ix,off) left
       | left <= 0 = accum
       | otherwise = let catch    = arr ! ix
+                        clean    = mask (wordlength - off) .&. catch
+                        shifted  = clean `shift` leftnext
                         leftnext = left - wordlength + off
-                        shifted  = w `shift` leftnext
-                        clean    = mask (wordlength + leftnext - off) .&. shifted
-                    in rec (accum .|. clean) (ix + 1,0) leftnext
+                    in rec (accum .|. fromIntegral shifted) (ix + 1,0) leftnext
+
+retrieveBool :: Int -> BitPack Bool -> Bool
+retrieveBool n pack@(BitPack len _ _ arr)
+  | n < 0     = error "Negative index"
+  | n >= len  = error "Index out of bounds"
+  | otherwise = let (ix,bit) = n `divMod` wordlength
+                    catch    = arr ! ix
+                    shifted  = catch `shiftR` (wordlength - 1 - fromIntegral bit)
+                in odd shifted
+
+sizeBitPack :: BitPack a -> Int
+sizeBitPack (BitPack _ _ size _) = size
 
  -- Utils
 
-decode :: (Integral a, Integral b) => Int -> a -> (b,a)
+decode :: (Integral a, Integral b, Bits a) => Int -> a -> (b,a)
 decode amount num
   | amount < 1 = error "Amount less then one"
   | otherwise  = let ret = fromIntegral $ num .&. mask amount
@@ -87,8 +97,8 @@ listToArray xs = listArray (0,length xs - 1) xs
 mask :: Integral a => Int -> a
 mask amount = fromIntegral $ 2 ^ amount - 1
 
-wordLength :: Int
-wordLength = rec (maxBound :: Word)
+wordlength :: Int
+wordlength = rec (maxBound :: Word)
   where
   rec :: Word -> Int
   rec 0 = 0
